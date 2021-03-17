@@ -1,36 +1,35 @@
 const {ObjectId} = require("mongodb");
 const connection = require("../utils/connection");
 const db = process.env.MONGO_DB;
+const bcrypt = require('bcrypt');
 
-async function getProduct(req, res) {
+async function getUser(req, res) {
     try {
         let client = await connection.createConnection();
         let dbo = client.db(db);
-        let collection = dbo.collection('product'); 
-        let query = {};
-        if(req.query.catagory_id) query.catagory_id = new ObjectId(req.query.catagory_id);
-        let result = await collection.find(query).toArray();
+        let collection = dbo.collection('user');
+        let result = await collection.findOne({_id: new ObjectId(req.query.id)});
         connection.closeConnection(client);
+        if(result){
+            delete result.password;
+        }        
         res.status(200).json({ success: true, data: result });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 }
 
-async function postProduct(req, res) {
+async function createUser(req, res) {
     let data = req.body;
     try {
         let client = await connection.createConnection();
         let dbo = client.db(db);
-        let collection = dbo.collection('product');
+        let collection = dbo.collection('user');
         await collection.insertOne({
-            catagory_id: new ObjectId(data.catagory_id),
-            product_name: data.product_name,
-            product_price: data.product_price,
-            currency_type: data.currency_type,
-            product_qty: data.product_qty,
-            qty_type: data.qty_type,
-            product_image: data.product_image,
+            user_name: data.user_name,
+            email: data.email,
+            password: bcrypt.hashSync(data.password, 10),
+            mobile_number: data.mobile_number,
             created_date: new Date()
         });
         connection.closeConnection(client);
@@ -39,8 +38,8 @@ async function postProduct(req, res) {
         res.status(500).json({ success: false, error: err.message });
     }
 }
-
+ 
 module.exports = {
-    getProduct: getProduct,
-    postProduct: postProduct
+    getUser: getUser,
+    createUser: createUser
 }
